@@ -4,8 +4,16 @@
 
 <h1>Hello, OpenAlex!</h1>
 
-<InputText Value="@SearchField" />
+<label for="search">Enter search criteria</label>
+<InputText id="search" @bind-Value="@SearchField" class="form-control" /> 
+
+<button class="btn btn-primary" @onclick="Search">Search</button>
 
 @code {
     string? SearchField { get; set; }
+
+    void Search()
+    {
+        
+    }
 }
