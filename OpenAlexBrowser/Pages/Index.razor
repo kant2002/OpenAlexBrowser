@@ -15,48 +15,7 @@
 {
     @foreach (var author in foundAuthors)
     {
-        <div class="row">
-            <div class="col">
-                <b>Display name: </b>
-                <a href="@author.Id" target="_blank">
-                @author.DisplayName 
-                </a>
-                @if (author.DisplayNameAlternatives.Count > 0)
-                {
-                    <text>aka.</text>
-                    @foreach (var i in author.DisplayNameAlternatives)
-                    {
-                        <text>(@(i.ToString())) </text>
-                    }
-                }
-
-                @if (author.Orcid is not null)
-                {
-                    <text>&nbsp;</text>
-                    <a href="@author.Orcid" target="_blank">ORCID</a>
-                }
-
-                @if (author.LastKnownInstitution is not null)
-                {
-                    <b> Last Known Institution: </b>
-                    <a href="@author.LastKnownInstitution.Id" target="_blank">
-                        @author.LastKnownInstitution.DisplayName
-                    </a>
-                    <text>,</text>
-                    @author.LastKnownInstitution.CountryCode
-                    <text>,</text>
-                    @author.LastKnownInstitution.Type
-
-                    @if (author.LastKnownInstitution.Ror is not null)
-                    {
-                        <text>&nbsp;</text>
-                        <a href="@author.LastKnownInstitution.Ror" target="_blank">ROR</a>
-                    }
-                }
-
-                <b> Works:</b> <a href="@author.WorksApiUrl" target="_blank">@author.WorksCount</a>
-            </div>
-        </div>
+        <AuthorShortInformation Author="author" />
     }
 }
 @code {
@@ -73,6 +32,11 @@
 
         foundAuthors = null;
         var authors = await openAlex.SearchAuthorsAsync(SearchField);
+        if (authors is null)
+        {
+            return;
+        }
+
         foundAuthors = authors.Results;
     }
 }

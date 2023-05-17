@@ -1,0 +1,47 @@
+﻿@using OpenAlexNet;
+<div class="row">
+    <div class="col">
+        <b>Display name: </b>
+        <a href="@Author.Id" target="_blank">
+            @Author.DisplayName
+        </a>
+        @if (Author.DisplayNameAlternatives.Count > 0)
+        {
+            <text>aka.</text>
+            @foreach (var i in Author.DisplayNameAlternatives)
+            {
+                <text>(@(i.ToString())) </text>
+            }
+        }
+
+        @if (Author.Orcid is not null)
+        {
+            <text>&nbsp;</text>
+            <a href="@Author.Orcid" target="_blank">ORCID</a>
+        }
+
+        @if (Author.LastKnownInstitution is not null)
+        {
+            <b> Last Known Institution: </b>
+            <a href="@Author.LastKnownInstitution.Id" target="_blank">
+                @Author.LastKnownInstitution.DisplayName
+            </a>
+            <text>,</text>
+            @Author.LastKnownInstitution.CountryCode
+            <text>,</text>
+            @Author.LastKnownInstitution.Type
+
+            @if (Author.LastKnownInstitution.Ror is not null)
+            {
+                <text>&nbsp;</text>
+                <a href="@Author.LastKnownInstitution.Ror" target="_blank">ROR</a>
+            }
+        }
+
+        <b> Works:</b> <a href="@Author.WorksApiUrl" target="_blank">@Author.WorksCount</a>
+    </div>
+</div>
+@code {
+    [Parameter, EditorRequired]
+    public Author Author { get; set; } = null!;
+}
