@@ -1,0 +1,47 @@
+﻿@page "/works"
+@using OpenAlexNet;
+@inject OpenAlexApi openAlex
+<h3>Works</h3>
+
+<label for="search">Enter search criteria</label>
+<InputText id="search" @bind-Value="@SearchField" class="form-control" />
+
+<button class="btn btn-primary" @onclick="Search">Search</button>
+
+@if (foundWorks is not null)
+{
+    <p>Found: @foundWorks.Count works</p>
+    @foreach (var work in foundWorks)
+    {
+        <WorkShortInformation Work="work" />
+    }
+}
+
+@code {
+    string? SearchField { get; set; }
+
+    List<Work>? foundWorks;
+
+    async Task Search()
+    {
+        if (SearchField is null)
+        {
+            return;
+        }
+
+        foundWorks = new();
+
+        int page = 1;
+        var works = await openAlex.FindWorksByAffiliationAsync(SearchField, page);
+        while (works.Meta.PerPage * works.Meta.Page < works.Meta.Count)
+        {
+            foundWorks.AddRange(works.Results);
+            //PrintWorks(works.Results);
+            page++;
+            works = await openAlex.FindWorksByAffiliationAsync(SearchField, page);
+        }
+
+        foundWorks.AddRange(works.Results);
+    }
+
+}
