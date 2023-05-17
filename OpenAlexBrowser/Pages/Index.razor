@@ -15,13 +15,76 @@
 {
     @foreach (var author in foundAuthors)
     {
+        var works = foundWorks[author.Id];
+
         <AuthorShortInformation Author="author" />
+        @foreach (var work in works)
+        {
+            <div class="row">
+                <div class="col">
+                    <b>Display name: </b>
+                    <a href="@work.Id" target="_blank">
+                        @work.DisplayName
+                    </a>
+
+                    <text>&nbsp;</text>
+                    @work.PublicationDate
+
+                    @if (work.Doi is not null)
+                    {
+                        <text>&nbsp;</text>
+                        <a href="@work.Doi" target="_blank">DOI</a>
+                    }
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <td>Author</td>
+                                <td>
+                                    Affiliations
+                                </td>
+                                <td>
+                                    Institutions
+                                </td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in work.Authorships)
+                            {
+                                var affiliationsTitle = string.Join("\n", @a.RawAffiliationStrings);
+                                <tr>
+                                    <td>
+                                        <a href="@a.Author.Id" target="_blank">
+                                            @a.Author.DisplayName
+                                        </a>
+                                        @if (a.Author.Orcid is not null)
+                                        {
+                                            <text>&nbsp;</text>
+                                            <a href="@a.Author.Orcid" target="_blank">ORCID</a>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span title="@affiliationsTitle">@a.RawAffiliationString</span>
+                                    </td>
+                                    <td>
+                                        @foreach (var i in a.Institutions)
+                                        {
+                                            <text>@i.DisplayName &nbsp;</text>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
     }
 }
 @code {
     string? SearchField { get; set; }
 
     List<Author>? foundAuthors;
+    Dictionary<string, List<Work>> foundWorks = new();
 
     async Task Search()
     {
@@ -31,6 +94,7 @@
         }
 
         foundAuthors = null;
+        foundWorks = new();
         var authors = await openAlex.SearchAuthorsAsync(SearchField);
         if (authors is null)
         {
@@ -38,5 +102,10 @@
         }
 
         foundAuthors = authors.Results;
+        foreach (var author in foundAuthors)
+        {
+            var authorWorks = await openAlex.FindWorksByAuthorAsync(author.Id);
+            foundWorks.Add(author.Id, authorWorks.Results);
+        }
     }
 }
