@@ -1,17 +1,26 @@
 ﻿@page "/works"
 @using OpenAlexNet;
 @inject OpenAlexApi openAlex
-<h3>Works</h3>
+<h3>
+    Works
+    @if (loading)
+    {
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    }
+</h3>
 
 <label for="search">Enter search criteria</label>
 <InputText id="search" @bind-Value="@SearchField" class="form-control" />
 
 <button class="btn btn-primary" @onclick="Search">Search</button>
 
+
 @if (foundWorks is not null)
 {
     <p>Found: @foundWorks.Count works</p>
-    @foreach (var work in foundWorks)
+    @foreach (var work in foundWorks.OrderByDescending(_ => _.PublicationDate))
     {
         <WorkShortInformation Work="work" />
     }
@@ -19,7 +28,7 @@
 
 @code {
     string? SearchField { get; set; }
-
+    bool loading;
     List<Work>? foundWorks;
 
     async Task Search()
@@ -29,19 +38,28 @@
             return;
         }
 
-        foundWorks = new();
+        foundWorks = null;
+        loading = true;
 
-        int page = 1;
-        var works = await openAlex.FindWorksByAffiliationAsync(SearchField, page);
-        while (works.Meta.PerPage * works.Meta.Page < works.Meta.Count)
+        try
         {
-            foundWorks.AddRange(works.Results);
-            //PrintWorks(works.Results);
-            page++;
-            works = await openAlex.FindWorksByAffiliationAsync(SearchField, page);
-        }
+            int page = 1;
+            var works = await openAlex.FindWorksByAffiliationAsync(SearchField, page);
+            foundWorks = new();
+            while (works.Meta.PerPage * works.Meta.Page < works.Meta.Count)
+            {
+                foundWorks.AddRange(works.Results);
+                //PrintWorks(works.Results);
+                page++;
+                works = await openAlex.FindWorksByAffiliationAsync(SearchField, page);
+            }
 
-        foundWorks.AddRange(works.Results);
+            foundWorks.AddRange(works.Results);
+        }
+        finally
+        {
+            loading = false;
+        }
     }
 
 }

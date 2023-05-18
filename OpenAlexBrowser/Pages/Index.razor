@@ -11,6 +11,12 @@
 
 <button class="btn btn-primary" @onclick="Search">Search</button>
 
+@if (loading)
+{
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+}
 @if (foundAuthors is not null)
 {
     @foreach (var author in foundAuthors)
@@ -18,7 +24,7 @@
         var works = foundWorks[author.Id];
 
         <AuthorShortInformation Author="author" />
-        @foreach (var work in works)
+        @foreach (var work in works.OrderByDescending(_ => _.PublicationDate))
         {
             <WorkShortInformation Work="work" />
         }
@@ -26,6 +32,7 @@
 }
 @code {
     string? SearchField { get; set; }
+    bool loading;
 
     List<Author>? foundAuthors;
     Dictionary<string, List<Work>> foundWorks = new();
@@ -37,19 +44,27 @@
             return;
         }
 
-        foundAuthors = null;
-        foundWorks = new();
-        var authors = await openAlex.SearchAuthorsAsync(SearchField);
-        if (authors is null)
+        loading = true;
+        try
         {
-            return;
-        }
+            foundAuthors = null;
+            foundWorks = new();
+            var authors = await openAlex.SearchAuthorsAsync(SearchField);
+            if (authors is null)
+            {
+                return;
+            }
 
-        foundAuthors = authors.Results;
-        foreach (var author in foundAuthors)
+            foundAuthors = authors.Results;
+            foreach (var author in foundAuthors)
+            {
+                var authorWorks = await openAlex.FindWorksByAuthorAsync(author.Id);
+                foundWorks.Add(author.Id, authorWorks.Results);
+            }
+        }
+        finally
         {
-            var authorWorks = await openAlex.FindWorksByAuthorAsync(author.Id);
-            foundWorks.Add(author.Id, authorWorks.Results);
+            loading = false;
         }
     }
 }
