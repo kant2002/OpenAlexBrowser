@@ -6,10 +6,14 @@
 
 <h1>Hello, OpenAlex!</h1>
 
-<label for="search">Enter author name</label>
-<InputText id="search" @bind-Value="@SearchField" class="form-control" /> 
-
-<button class="btn btn-primary" @onclick="Search">Search</button>
+<form class="row g-3">
+    <div class="col-12">
+        <InputText id="search" @bind-Value="@SearchField" class="form-control" placeholder="Author name to find" aria-label="Search field" />
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary" @onclick="Search">Search</button>
+    </div>
+</form>
 
 @if (loading)
 {
@@ -21,12 +25,19 @@
 {
     @foreach (var author in foundAuthors)
     {
-        var works = foundWorks[author.Id];
-
         <AuthorShortInformation Author="author" />
-        @foreach (var work in works.OrderByDescending(_ => _.PublicationDate))
+        if (!foundWorks.TryGetValue(author.Id, out var works))
         {
-            <WorkShortInformation Work="work" />
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        }
+        else
+        {
+            @foreach (var work in works.OrderByDescending(_ => _.PublicationDate))
+            {
+                <WorkShortInformation Work="work" />
+            }
         }
     }
 }
@@ -55,11 +66,18 @@
                 return;
             }
 
+            StateHasChanged();
             foundAuthors = authors.Results;
             foreach (var author in foundAuthors)
             {
                 var authorWorks = await openAlex.FindWorksByAuthorAsync(author.Id);
+                if (authorWorks is null)
+                {
+                    continue;
+                }
+
                 foundWorks.Add(author.Id, authorWorks.Results);
+                StateHasChanged();
             }
         }
         finally

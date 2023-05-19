@@ -11,15 +11,26 @@
     }
 </h3>
 
-<label for="search">Enter search criteria</label>
-<InputText id="search" @bind-Value="@SearchField" class="form-control" />
-
-<button class="btn btn-primary" @onclick="Search">Search</button>
-
+<form class="row g-3" @onsubmit=Search>
+    <div class="col-12">
+        <InputText id="search" @bind-Value="@SearchField" class="form-control" placeholder="Organiation name to find" aria-label="Search field" />
+    </div>
+    <div class="col-12">
+        <div class="form-check">
+            <InputCheckbox class="form-check-input" type="checkbox" id="fuzzySearch" @bind-Value="@fuzzySearch" />
+            <label class="form-check-label" for="fuzzySearch">
+                Indirect search via parsed affiliations
+            </label>
+        </div>
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary" @onclick="Search">Search</button>
+    </div>
+</form>
 
 @if (foundWorks is not null)
 {
-    <p>Found: @foundWorks.Count works</p>
+    <p>Found: @expectedCount works</p>
     @foreach (var work in foundWorks.OrderByDescending(_ => _.PublicationDate))
     {
         <WorkShortInformation Work="work" />
@@ -29,6 +40,8 @@
 @code {
     string? SearchField { get; set; }
     bool loading;
+    bool fuzzySearch = true;
+    int expectedCount;
     List<Work>? foundWorks;
 
     async Task Search()
@@ -43,15 +56,44 @@
 
         try
         {
+            expectedCount = 0;
             int page = 1;
-            var works = await openAlex.FindWorksByAffiliationAsync(SearchField, page);
+            WorksFilter filter = new WorksFilter()
+                .FromPublicationDate(new DateOnly(DateTime.Now.Year - 9, 1, 1));
+            if (fuzzySearch)
+            {
+                filter.SearchRawAffiliationString(SearchField);
+            }
+            else
+            {
+                var institutions = await openAlex.SearchInstitutionsAsync(SearchField);
+                if (institutions is null)
+                {
+                    return;
+                }
+
+                filter.ByInstitutionsId(institutions.Results.Take(50).Select(i => i.Id.Replace("https://openalex.org/", "")));
+            }
+
+            var works = await openAlex.FindWorksAsync(filter, page);
+            if (works is null)
+            {
+                return;
+            }
+
+            expectedCount = works.Meta.Count ?? 0;
             foundWorks = new();
             while (works.Meta.PerPage * works.Meta.Page < works.Meta.Count)
             {
                 foundWorks.AddRange(works.Results);
+                StateHasChanged();
                 //PrintWorks(works.Results);
                 page++;
-                works = await openAlex.FindWorksByAffiliationAsync(SearchField, page);
+                works = await openAlex.FindWorksAsync(filter, page);
+                if (works is null)
+                {
+                    return;
+                }
             }
 
             foundWorks.AddRange(works.Results);
