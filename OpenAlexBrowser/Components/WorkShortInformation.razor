@@ -7,6 +7,7 @@
         </a>
 
         <text>&nbsp;</text>
+        <b>Published: </b>
         @Work.PublicationDate
 
         @if (Work.Doi is not null)
@@ -48,6 +49,11 @@
                             @foreach (var i in a.Institutions)
                             {
                                 <text>@i.DisplayName &nbsp;</text>
+                                @if (i.Ror != null)
+                                {
+                                    <a href="@i.Ror">ROR</a>
+                                    <text>&nbsp;</text>
+                                }
                             }
                         </td>
                     </tr>

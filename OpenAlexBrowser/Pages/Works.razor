@@ -1,7 +1,7 @@
 ﻿@page "/works"
 @using OpenAlexNet;
 @inject OpenAlexApi openAlex
-<h3>
+<h1>
     Works
     @if (loading)
     {
@@ -9,11 +9,20 @@
             <span class="visually-hidden">Loading...</span>
         </div>
     }
-</h3>
+</h1>
 
 <form class="row g-3" @onsubmit=Search>
-    <div class="col-12">
+    <div class="col-8">
         <InputText id="search" @bind-Value="@SearchField" class="form-control" placeholder="Organiation name to find" aria-label="Search field" />
+    </div>
+    <div class="col-4">
+        <InputText @bind-Value="@MinimumYear" list="datalistYears" class="form-control" placeholder="Minimum year" aria-label="Search field" />
+        <datalist id="datalistYears">
+            @for (var year = 2010; year <= DateTime.UtcNow.Year; year++)
+            {
+                <option value="@year" />
+            }
+        </datalist>
     </div>
     <div class="col-12">
         <div class="form-check">
@@ -30,15 +39,43 @@
 
 @if (foundWorks is not null)
 {
+    int lastYear = 0;
+    var years = foundWorks.Select(_ => _.PublicationYear ?? 0).Distinct().Where(_ => _ != 0).OrderBy(_ => _).ToList();
     <p>Found: @expectedCount works</p>
+    <ul class="nav">
+        @foreach (var year in years)
+        {
+            <li class="nav-item">
+                <a class="nav-link" href="@("#years-" + year)">@year</a>
+            </li>
+        }
+        @if (loading)
+        {
+            <li class="nav-item">
+                <a class="nav-link">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </a>
+            </li>
+        }
+    </ul>
+
     @foreach (var work in foundWorks.OrderByDescending(_ => _.PublicationDate))
     {
+        if (lastYear < (work.PublicationYear ?? 0))
+        {
+            lastYear = work.PublicationYear ?? 0;
+            <h2 id="@("year-" + lastYear)">@lastYear</h2>
+        }
+
         <WorkShortInformation Work="work" />
     }
 }
 
 @code {
     string? SearchField { get; set; }
+    string? MinimumYear { get; set; }
     bool loading;
     bool fuzzySearch = true;
     int expectedCount;
@@ -58,8 +95,12 @@
         {
             expectedCount = 0;
             int page = 1;
-            WorksFilter filter = new WorksFilter()
-                .FromPublicationDate(new DateOnly(DateTime.Now.Year - 9, 1, 1));
+            WorksFilter filter = new WorksFilter();
+            if (int.TryParse(MinimumYear, out var minimumYear))
+            {
+                filter.FromPublicationDate(new DateOnly(minimumYear, 1, 1));
+            }
+
             if (fuzzySearch)
             {
                 filter.SearchRawAffiliationString(SearchField);
