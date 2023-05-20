@@ -128,7 +128,7 @@
             {
                 foundWorks.AddRange(works.Results);
                 StateHasChanged();
-                //PrintWorks(works.Results);
+
                 page++;
                 works = await openAlex.FindWorksAsync(filter, page);
                 if (works is null)
