@@ -1,5 +1,6 @@
 ﻿@page "/institutions"
 @using OpenAlexNet;
+@using System.Web;
 @inject OpenAlexApi openAlex
 <h1>
     Institutions
@@ -29,14 +30,18 @@
         <text>@institution.DisplayName &nbsp;</text>
         @if (institution.Ror != null)
         {
-            <a href="@institution.Ror">ROR</a>
+            <a href="@("works?ror=" + institution.Ror.Replace("https://ror.org/", ""))">ROR</a><text>:</text> @institution.Ror
             <text>&nbsp;</text>
         }
+
+        <NavLink href="@("works?search=" + HttpUtility.UrlPathEncode(institution.DisplayName))">Search for works</NavLink>
     }
 }
 
 @code {
-    string? SearchField { get; set; }
+    [SupplyParameterFromQuery(Name = "search")]
+    [Parameter]
+    public string? SearchField { get; set; }
     bool loading;
     int expectedCount;
     List<Institution>? foundInstitutions;

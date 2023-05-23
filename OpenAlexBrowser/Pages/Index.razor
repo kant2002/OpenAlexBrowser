@@ -42,7 +42,10 @@
     }
 }
 @code {
-    string? SearchField { get; set; }
+    [SupplyParameterFromQuery(Name = "search")]
+    [Parameter]
+    public string? SearchField { get; set; }
+
     bool loading;
 
     List<Author>? foundAuthors;
