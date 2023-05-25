@@ -14,7 +14,7 @@
 </h1>
 
 <form class="row g-3" @onsubmit=Search>
-    <div class="col-8">
+    <div class="col-6">
         <InputText id="search" @bind-Value="@SearchField" class="form-control" placeholder="Organiation name to find" aria-label="Search field" />
     </div>
     <div class="col-2">
@@ -22,6 +22,15 @@
     </div>
     <div class="col-2">
         <InputText @bind-Value="@MinimumYear" list="datalistYears" class="form-control" placeholder="Minimum year" aria-label="Search field" />
+        <datalist id="datalistYears">
+            @for (var year = 2010; year <= DateTime.UtcNow.Year; year++)
+            {
+                <option value="@year" />
+            }
+        </datalist>
+    </div>
+    <div class="col-2">
+        <InputText @bind-Value="@MaximumYear" list="datalistYears" class="form-control" placeholder="Maximum year" aria-label="Search field" />
         <datalist id="datalistYears">
             @for (var year = 2010; year <= DateTime.UtcNow.Year; year++)
             {
@@ -110,6 +119,7 @@
     public string? Ror { get; set; }
 
     string? MinimumYear { get; set; }
+    string? MaximumYear { get; set; }
     bool loading;
     bool fuzzySearch = true;
     int expectedCount;
@@ -140,6 +150,11 @@
             if (int.TryParse(MinimumYear, out var minimumYear))
             {
                 filter.FromPublicationDate(new DateOnly(minimumYear, 1, 1));
+            }
+
+            if (int.TryParse(MaximumYear, out var maximumYear))
+            {
+                filter.ToPublicationDate(new DateOnly(maximumYear, 12, 31));
             }
 
             if (!string.IsNullOrWhiteSpace(Ror))
