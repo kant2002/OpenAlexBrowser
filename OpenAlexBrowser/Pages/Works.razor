@@ -1,6 +1,8 @@
 ﻿@page "/works"
 @using OpenAlexNet;
+@using System.Text.Json;
 @inject OpenAlexApi openAlex
+@inject IJSRuntime JS
 <h1>
     Works
     @if (loading)
@@ -36,7 +38,8 @@
         </div>
     </div>
     <div class="col-12">
-        <button type="submit" class="btn btn-primary" @onclick="Search">Search</button>
+        <button type="submit" class="btn btn-primary">Search</button>
+        <button type="button" class="btn btn-secondary" @onclick="Export">Export to JSON</button>
     </div>
 </form>
 
@@ -163,4 +166,20 @@
         }
     }
 
+    async Task Export()
+    {
+        if (foundWorks is null)
+        {
+            return;
+        }
+
+        var fileStream = new MemoryStream();
+        JsonSerializer.Serialize(fileStream, foundWorks);
+        fileStream.Position = 0;
+        var fileName = "works.json";
+
+        using var streamRef = new DotNetStreamReference(stream: fileStream);
+
+        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+    }
 }
