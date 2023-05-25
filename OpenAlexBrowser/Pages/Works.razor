@@ -40,6 +40,7 @@
     <div class="col-12">
         <button type="submit" class="btn btn-primary">Search</button>
         <button type="button" class="btn btn-secondary" @onclick="Export">Export to JSON</button>
+        <button type="button" class="btn btn-secondary" @onclick="CheckCount">Check Count</button>
     </div>
 </form>
 
@@ -47,7 +48,7 @@
 {
     int lastYear = 0;
     var years = foundWorks.Select(_ => _.PublicationYear ?? 0).Distinct().Where(_ => _ != 0).OrderBy(_ => _).ToList();
-    <p>Found: @expectedCount works</p>
+    <p>Found: @foundWorks.Count out of @expectedCount works</p>
     <ul class="nav">
         @foreach (var year in years)
         {
@@ -67,7 +68,27 @@
         }
     </ul>
 
-    @foreach (var work in foundWorks.OrderByDescending(_ => _.PublicationDate))
+    <nav aria-label="Search results pagination">
+        <ul class="pagination">
+            @* <li class="page-item">
+                <a class="page-link" href="#" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li> *@
+            @for (var i = 0; i < (foundWorks.Count + 99) / 100;i++)
+            {
+                <li class="page-item"><a class="page-link @(i == currentUiPage ? "active" : null)" href="#" @onclick=@(() => SetPage(i))>@(i + 1)</a></li>
+            }
+            @* <li class="page-item">
+                <a class="page-link" href="#" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li> *@
+        </ul>
+    </nav>
+
+    var sortedWorks = foundWorks.OrderByDescending(_ => _.PublicationDate).ToList();
+    foreach (var work in sortedWorks.Skip(currentUiPage * 100).Take(100))
     {
         if (lastYear < (work.PublicationYear ?? 0))
         {
@@ -92,7 +113,72 @@
     bool loading;
     bool fuzzySearch = true;
     int expectedCount;
+    int currentUiPage;
     List<Work>? foundWorks;
+
+    void SetPage(int page)
+    {
+        currentUiPage = page;
+    }
+
+    async Task CheckCount()
+    {
+        if (SearchField is null && Ror is null)
+        {
+            return;
+        }
+
+        foundWorks = null;
+        loading = true;
+
+        try
+        {
+            expectedCount = 0;
+            int page = 1;
+            currentUiPage = 0;
+            WorksFilter filter = new WorksFilter();
+            if (int.TryParse(MinimumYear, out var minimumYear))
+            {
+                filter.FromPublicationDate(new DateOnly(minimumYear, 1, 1));
+            }
+
+            if (!string.IsNullOrWhiteSpace(Ror))
+            {
+                filter.ByInstitutionsRor(Ror);
+            }
+
+            if (SearchField is not null)
+            {
+                if (fuzzySearch)
+                {
+                    filter.SearchRawAffiliationString(SearchField);
+                }
+                else
+                {
+                    var institutions = await openAlex.SearchInstitutionsAsync(SearchField);
+                    if (institutions is null)
+                    {
+                        return;
+                    }
+
+                    filter.ByInstitutionsId(institutions.Results.Take(50).Select(i => i.Id.Replace("https://openalex.org/", "")));
+                }
+            }
+
+            var works = await openAlex.FindWorksAsync(filter, page);
+            if (works is null)
+            {
+                return;
+            }
+
+            expectedCount = works.Meta.Count ?? 0;
+            foundWorks = new();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
 
     async Task Search()
     {
@@ -137,7 +223,8 @@
                 }
             }
 
-            var works = await openAlex.FindWorksAsync(filter, page);
+            var perPage = 50;
+            var works = await openAlex.FindWorksAsync(filter, page, perPage);
             if (works is null)
             {
                 return;
@@ -151,7 +238,7 @@
                 StateHasChanged();
 
                 page++;
-                works = await openAlex.FindWorksAsync(filter, page);
+                works = await openAlex.FindWorksAsync(filter, page, perPage);
                 if (works is null)
                 {
                     return;
