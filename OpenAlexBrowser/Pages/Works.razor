@@ -3,6 +3,7 @@
 @using System.Text.Json;
 @inject OpenAlexApi openAlex
 @inject IJSRuntime JS
+@inject NavigationManager NavigationManager
 <h1>
     Works
     @if (loading)
@@ -46,10 +47,16 @@
             </label>
         </div>
     </div>
-    <div class="col-12">
+    <div class="col-4">
         <button type="submit" class="btn btn-primary">Search</button>
         <button type="button" class="btn btn-secondary" @onclick="Export">Export to JSON</button>
         <button type="button" class="btn btn-secondary" @onclick="CheckCount">Check Count</button>
+    </div>
+    <div class="col-3">
+        <InputText @bind-Value="@WorkId" class="form-control" placeholder="OpenAlex Work Id" aria-label="OpenAlex Work id" />
+    </div>
+    <div class="col-5">
+        <button type="button" class="btn btn-secondary" @onclick="SearchWork">Search Work</button>
     </div>
 </form>
 
@@ -117,6 +124,7 @@
     [SupplyParameterFromQuery(Name = "ror")]
     [Parameter]
     public string? Ror { get; set; }
+    public string? WorkId { get; set; }
 
     string? MinimumYear { get; set; }
     string? MaximumYear { get; set; }
@@ -283,5 +291,10 @@
         using var streamRef = new DotNetStreamReference(stream: fileStream);
 
         await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+    }
+
+    void SearchWork()
+    {
+        NavigationManager.NavigateTo($"work/{WorkId}");
     }
 }

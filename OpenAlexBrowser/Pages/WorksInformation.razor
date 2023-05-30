@@ -1,0 +1,37 @@
+﻿@page "/work/{workId}"
+@using OpenAlexNet;
+@inject OpenAlexApi openAlex
+<h1>
+    Work #@WorkId
+    @if (loading)
+    {
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    }
+</h1>
+
+@if (work is not null)
+{
+    <WorkShortInformation Work="work" />
+}
+
+@code {
+    [Parameter]
+    public string? WorkId { get; set; }
+    bool loading;
+    Work? work;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        loading = true;
+        try
+        {
+            work = await openAlex.GetWorkAsync(WorkId);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+}
