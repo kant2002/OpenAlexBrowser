@@ -32,11 +32,8 @@
     {
         <p>
             <text>@funder.DisplayName &nbsp;</text>
-            @if (funder.Id != null)
-            {
-                <text>ID:</text> @funder.Id
-                <text>&nbsp;</text>
-            }
+            <text>ID:</text> @funder.Id
+            <text>&nbsp;</text>
             @if (funder.Ids.Ror != null)
             {
                 <a href="@("works?ror=" + funder.Ids.Ror.Replace("https://ror.org/", ""))">ROR</a><text>:</text> @funder.Ids.Ror
@@ -59,7 +56,7 @@
             </ul>
         }
 
-        <NavLink href="@("works?search=" + HttpUtility.UrlPathEncode(funder.DisplayName))">Search for works</NavLink>
+        <NavLink href="@("works?funder=" + funder.Id.Replace("https://openalex.org/", ""))">Search for works</NavLink>
     }
 }
 
