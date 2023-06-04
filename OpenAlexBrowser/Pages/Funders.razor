@@ -1,0 +1,117 @@
+﻿@page "/funders"
+@using OpenAlexNet;
+@using System.Web;
+@inject OpenAlexApi openAlex
+<h1>
+    Funders
+    @if (loading)
+    {
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    }
+</h1>
+
+<form class="row g-3" @onsubmit=Search>
+    <div class="col-12">
+        <InputText id="search" @bind-Value="@SearchField" class="form-control" placeholder="Name of the funder to find" aria-label="Search funders field" />
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary" @onclick="Search">Search</button>
+    </div>
+</form>
+
+@if (foundFunders is not null)
+{
+    <p>Found: @expectedCount funders</p>
+
+    @foreach (var funder in foundFunders.OrderByDescending(_ => _.DisplayName))
+    {
+        <p>
+            <text>@funder.DisplayName &nbsp;</text>
+            @if (funder.Id != null)
+            {
+                <text>ID:</text> @funder.Id
+                <text>&nbsp;</text>
+            }
+            @if (funder.Ids.Ror != null)
+            {
+                <a href="@("works?ror=" + funder.Ids.Ror.Replace("https://ror.org/", ""))">ROR</a><text>:</text> @funder.Ids.Ror
+                <text>&nbsp;</text>
+            }
+            <text>Country: @funder.CountryCode &nbsp;</text>
+            @if (!string.IsNullOrWhiteSpace(funder.Description))
+            {
+                <text>Description: @funder.Description &nbsp;</text>
+            }
+        </p>
+        @if (funder.AlternateTitles.Count > 0)
+        {
+            <text>Alternate names:</text>
+            <ul>
+                @foreach (var altTitle in funder.AlternateTitles)
+                {
+                    <li>@altTitle</li>
+                }
+            </ul>
+        }
+
+        <NavLink href="@("works?search=" + HttpUtility.UrlPathEncode(funder.DisplayName))">Search for works</NavLink>
+    }
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "search")]
+    [Parameter]
+    public string? SearchField { get; set; }
+    bool loading;
+    int expectedCount;
+    List<Funder>? foundFunders;
+
+    async Task Search()
+    {
+        if (SearchField is null)
+        {
+            return;
+        }
+
+        foundFunders = null;
+        loading = true;
+
+        try
+        {
+            expectedCount = 0;
+            int page = 1;
+            var filter = new FundersFilter();
+            filter.DefaultSearch(SearchField);
+
+            var funders = await openAlex.FindFundersAsync(filter, page);
+            if (funders is null)
+            {
+                return;
+            }
+
+            expectedCount = funders.Meta.Count ?? 0;
+            foundFunders = new();
+            while (funders.Meta.PerPage * funders.Meta.Page < funders.Meta.Count)
+            {
+                foundFunders.AddRange(funders.Results);
+                StateHasChanged();
+
+                page++;
+                funders = await openAlex.FindFundersAsync(filter, page);
+                if (funders is null)
+                {
+                    return;
+                }
+            }
+
+            foundFunders.AddRange(funders.Results);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+}
