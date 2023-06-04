@@ -13,8 +13,11 @@
 </h1>
 
 <form class="row g-3" @onsubmit=Search>
-    <div class="col-12">
+    <div class="col-10">
         <InputText id="search" @bind-Value="@SearchField" class="form-control" placeholder="Name of the funder to find" aria-label="Search funders field" />
+    </div>
+    <div class="col-2">
+        <InputText id="search" @bind-Value="@Country" class="form-control" placeholder="Country Code" aria-label="Country code for funder to find" />
     </div>
     <div class="col-12">
         <button type="submit" class="btn btn-primary" @onclick="Search">Search</button>
@@ -64,13 +67,17 @@
     [SupplyParameterFromQuery(Name = "search")]
     [Parameter]
     public string? SearchField { get; set; }
+
+    [SupplyParameterFromQuery(Name = "country_code")]
+    [Parameter]
+    public string? Country { get; set; }
     bool loading;
     int expectedCount;
     List<Funder>? foundFunders;
 
     async Task Search()
     {
-        if (SearchField is null)
+        if (SearchField is null && Country is null)
         {
             return;
         }
@@ -83,7 +90,15 @@
             expectedCount = 0;
             int page = 1;
             var filter = new FundersFilter();
-            filter.DefaultSearch(SearchField);
+            if (!string.IsNullOrEmpty(SearchField))
+            {
+                filter.DefaultSearch(SearchField);
+            }
+
+            if (!string.IsNullOrEmpty(Country))
+            {
+                filter.ByCountryCode(Country);
+            }
 
             var funders = await openAlex.FindFundersAsync(filter, page);
             if (funders is null)
