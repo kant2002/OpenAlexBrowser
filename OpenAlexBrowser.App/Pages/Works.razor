@@ -2,7 +2,7 @@
 @using OpenAlexNet;
 @using System.Text.Json;
 @inject OpenAlexApi openAlex
-@inject IJSRuntime JS
+@inject FilesInterop JS
 @inject NavigationManager NavigationManager
 <h1>
     Works
@@ -306,11 +306,7 @@ var sortedWorks = foundWorks.OrderByDescending(_ => _.PublicationDate).ToList();
         var fileStream = new MemoryStream();
         JsonSerializer.Serialize(fileStream, foundWorks);
         fileStream.Position = 0;
-        var fileName = "works.json";
-
-        using var streamRef = new DotNetStreamReference(stream: fileStream);
-
-        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        await JS.DownloadFile("works.json", fileStream);
     }
 
     void SearchWork()
