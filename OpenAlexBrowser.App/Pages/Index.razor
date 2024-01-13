@@ -6,7 +6,7 @@
 
 <h1>Hello, OpenAlex!</h1>
 
-<form class="row g-3">
+<form class="row g-3" @onsubmit="Search">
     <div class="col-12">
         <InputText id="search" @bind-Value="@SearchField" class="form-control" placeholder="Author name to find" aria-label="Search field" />
     </div>
@@ -79,7 +79,15 @@
                     continue;
                 }
 
-                foundWorks.Add(author.Id, authorWorks.Results);
+                if (foundWorks.ContainsKey(author.Id))
+                {
+                    foundWorks[author.Id].AddRange(authorWorks.Results);
+                }
+                else
+                {
+                    foundWorks.Add(author.Id, authorWorks.Results);
+                }
+
                 StateHasChanged();
             }
         }
